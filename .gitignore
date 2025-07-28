@@ -53,6 +53,11 @@ bower_components/
 # Mac system files
 .DS_Store
 
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
 # Optional npm cache directory
 .npm/
 
@@ -72,3 +77,6 @@ bower_components/
 dist/
 build/
 out/
+
+# Print output files (for testing)
+print_output_*.txt

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Simple Server API Test - Windows 7</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            background-color: #007cba;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005a87;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Simple Server API Test</h1>
+        <p>This page helps test the Simple Server API on Windows 7 with Internet Explorer.</p>
+
+        <h3>Server Status</h3>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connectionResult" class="result"></div>
+
+        <h3>Get Printers</h3>
+        <button onclick="getPrinters()">Get Available Printers</button>
+        <div id="printersResult" class="result"></div>
+
+        <h3>Print Test</h3>
+        <p>Test Data (JSON format):</p>
+        <textarea id="printData">{"data": [
+    [1, "Test Item 1", 5],
+    [2, "Test Item 2", 3],
+    [3, "Sample Product", 10],
+    [4, "चिया पत्ती", 2],
+    [5, "दूध पाउडर", 1]
+]}</textarea>
+        <br>
+        <button onclick="testPrint()">Send Print Request</button>
+        <div id="printResult" class="result"></div>
+
+        <h3>Instructions</h3>
+        <ul>
+            <li>Make sure the server is running (use start_server.bat)</li>
+            <li>Server should be accessible at: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a></li>
+            <li>If you get errors, check the console (F12) for more details</li>
+        </ul>
+    </div>
+
+    <script>
+        function createXHR() {
+            // IE7+ compatible XMLHttpRequest
+            if (window.XMLHttpRequest) {
+                return new XMLHttpRequest();
+            } else if (window.ActiveXObject) {
+                try {
+                    return new ActiveXObject("Msxml2.XMLHTTP");
+                } catch (e) {
+                    return new ActiveXObject("Microsoft.XMLHTTP");
+                }
+            }
+            return null;
+        }
+
+        function showResult(elementId, text, isError) {
+            var element = document.getElementById(elementId);
+            element.textContent = text;
+            element.className = 'result ' + (isError ? 'error' : 'success');
+        }
+
+        function testConnection() {
+            showResult('connectionResult', 'Testing connection...', false);
+
+            var xhr = createXHR();
+            if (!xhr) {
+                showResult('connectionResult', 'ERROR: XMLHttpRequest not supported', true);
+                return;
+            }
+
+            xhr.open('GET', 'http://localhost:8000/printers', true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        showResult('connectionResult', 'SUCCESS: Server is running and accessible', false);
+                    } else {
+                        showResult('connectionResult', 'ERROR: Server not accessible (Status: ' + xhr.status + ')', true);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                showResult('connectionResult', 'ERROR: Connection failed. Make sure server is running.', true);
+            };
+            xhr.send();
+        }
+
+        function getPrinters() {
+            showResult('printersResult', 'Getting printers...', false);
+
+            var xhr = createXHR();
+            if (!xhr) {
+                showResult('printersResult', 'ERROR: XMLHttpRequest not supported', true);
+                return;
+            }
+
+            xhr.open('GET', 'http://localhost:8000/printers', true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            var formatted = 'SUCCESS: Found ' + data.count + ' printer(s)\n\n' + JSON.stringify(data, null, 2);
+                            showResult('printersResult', formatted, false);
+                        } catch (e) {
+                            showResult('printersResult', 'SUCCESS: ' + xhr.responseText, false);
+                        }
+                    } else {
+                        showResult('printersResult', 'ERROR: ' + xhr.status + ' - ' + xhr.responseText, true);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                showResult('printersResult', 'ERROR: Request failed', true);
+            };
+            xhr.send();
+        }
+
+        function testPrint() {
+            var printData = document.getElementById('printData').value;
+            showResult('printResult', 'Sending print request...', false);
+
+            var xhr = createXHR();
+            if (!xhr) {
+                showResult('printResult', 'ERROR: XMLHttpRequest not supported', true);
+                return;
+            }
+
+            try {
+                // Validate JSON
+                JSON.parse(printData);
+            } catch (e) {
+                showResult('printResult', 'ERROR: Invalid JSON format', true);
+                return;
+            }
+
+            xhr.open('POST', 'http://localhost:8000/print', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            var formatted = 'SUCCESS: Print job submitted\n\n' + JSON.stringify(data, null, 2);
+                            showResult('printResult', formatted, false);
+                        } catch (e) {
+                            showResult('printResult', 'SUCCESS: ' + xhr.responseText, false);
+                        }
+                    } else {
+                        showResult('printResult', 'ERROR: ' + xhr.status + ' - ' + xhr.responseText, true);
+                    }
+                }
+            };
+            xhr.onerror = function () {
+                showResult('printResult', 'ERROR: Request failed', true);
+            };
+            xhr.send(printData);
+        }
+
+        // Auto-test connection when page loads
+        window.onload = function () {
+            setTimeout(testConnection, 500);
+        };
+    </script>
+</body>
+
+</html>
