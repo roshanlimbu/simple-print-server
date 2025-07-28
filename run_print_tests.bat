@@ -13,9 +13,9 @@ if errorlevel 1 (
 
 REM Check if server is running
 echo Checking if server is running...
-netstat -an | findstr :8000 >nul 2>&1
+netstat -an | findstr :3000 >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Server is not running on port 8000
+    echo ERROR: Server is not running on port 3000
     echo Please start the server first with: start_server.bat
     pause
     exit /b 1

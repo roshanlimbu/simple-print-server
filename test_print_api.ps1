@@ -2,7 +2,7 @@
 # Compatible with PowerShell 3.0+ (Windows 7 and above)
 
 param(
-    [string]$ServerUrl = "http://localhost:8000",
+    [string]$ServerUrl = "http://localhost:3000",
     [switch]$SkipConnectionTest,
     [switch]$TestOnly
 )

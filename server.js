@@ -16,7 +16,27 @@ const ORG_NAME = process.env.ORG_NAME || 'Your Organization';
 const PRINTER_NAME = process.env.PRINTER_NAME;
 const PAGE_WIDTH = parseInt(process.env.PAGE_WIDTH) || 32;
 
-app.use(express.json());
+// Add CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+app.use(express.json({ limit: '10mb' }));
+
+// Add request logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 function getVisualLength(str) {
   let length = 0;
@@ -83,21 +103,38 @@ app.get('/printers', async (req, res) => {
 });
 
 app.post('/print', async (req, res) => {
-  const { data } = req.body;
-
-  if (!Array.isArray(data) || data.length === 0) {
-    return res
-      .status(400)
-      .send('Data is required and must be a non-empty array');
-  }
-
-  const content = buildSlip(data);
-  console.log(`Content to print:\n${content}`);
-
   try {
+    console.log('Received print request:', req.body);
+
+    const { data } = req.body;
+
+    if (!data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing data field in request body',
+      });
+    }
+
+    if (!Array.isArray(data)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Data must be an array',
+      });
+    }
+
+    if (data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Data array cannot be empty',
+      });
+    }
+
+    const content = buildSlip(data);
+    console.log(`Content to print:\n${content}`);
+
     const result = await printer.print(content, {
       printer: process.env.PRINTER_NAME,
-      method: process.env.PRINT_METHOD || 'auto', // 'auto', 'cups', 'file', 'mock' | 'auto' will auto-detect the platform
+      method: process.env.PRINT_METHOD || 'auto',
     });
 
     console.log(`Print job completed: ${result.jobId}`);
@@ -108,11 +145,22 @@ app.post('/print', async (req, res) => {
     });
   } catch (error) {
     console.error('Print error:', error.message);
+    console.error('Print error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message,
     });
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+  });
 });
 
 app.get('/payload-test', (req, res) => {
@@ -125,10 +173,7 @@ app.get('/payload-test', (req, res) => {
       [5, 'दूध पाउडर', 1],
     ],
   };
-  // call the print endpoint with the test payload
   console.log(`Test Payload:\n${JSON.stringify(testPayload, null, 2)}`);
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(testPayload));
   res.status(200).json({
     success: true,
     message: 'Payload test endpoint hit successfully',
@@ -137,5 +182,17 @@ app.get('/payload-test', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`=================================`);
+  console.log(`Simple Print Server Started`);
+  console.log(`=================================`);
+  console.log(`Server: http://localhost:${port}`);
+  console.log(`Health: http://localhost:${port}/health`);
+  console.log(`Printers: http://localhost:${port}/printers`);
+  console.log(`Print: POST http://localhost:${port}/print`);
+  console.log(`Test Page: Open test_page.html in browser`);
+  console.log(`Organization: ${ORG_NAME}`);
+  console.log(`Default Printer: ${PRINTER_NAME || 'Auto-detect'}`);
+  console.log(`Page Width: ${PAGE_WIDTH}`);
+  console.log(`Print Method: ${process.env.PRINT_METHOD || 'auto'}`);
+  console.log(`=================================`);
 });

@@ -27,12 +27,14 @@ if not exist "node_modules" (
     echo.
 )
 
-echo Starting server on port 8000...
+echo Starting server on port 3000...
 echo Press Ctrl+C to stop the server
 echo.
 echo Test the API with:
-echo   - GET  http://localhost:8000/printers
-echo   - POST http://localhost:8000/print
+echo   - GET  http://localhost:3000/printers
+echo   - POST http://localhost:3000/print
+echo   - Health: http://localhost:3000/health
+echo   - Open test_page.html in browser
 echo.
 
 node server.js
