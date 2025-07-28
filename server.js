@@ -115,6 +115,27 @@ app.post('/print', async (req, res) => {
   }
 });
 
+app.get('/payload-test', (req, res) => {
+  const testPayload = {
+    data: [
+      [1, 'Test Item 1', 5],
+      [2, 'Test Item 2', 3],
+      [3, 'Sample Product', 10],
+      [4, 'चिया पत्ती', 2],
+      [5, 'दूध पाउडर', 1],
+    ],
+  };
+  // call the print endpoint with the test payload
+  console.log(`Test Payload:\n${JSON.stringify(testPayload, null, 2)}`);
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(testPayload));
+  res.status(200).json({
+    success: true,
+    message: 'Payload test endpoint hit successfully',
+    payload: testPayload,
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
